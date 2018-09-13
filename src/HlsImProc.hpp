@@ -167,60 +167,60 @@ namespace hlsimproc
         
 		//-- 5x5 Gaussian kernel (8bit left shift)
 		const int GAUSS_KERNEL[KERNEL_SIZE][KERNEL_SIZE] = { {1,  4,  6,  4, 1},
-															 {4, 16, 24, 16, 4},
-															 {6, 24, 36, 24, 6},
-															 {4, 16, 24, 16, 4},
-															 {1,  4,  6,  4, 1} };
+                                                             {4, 16, 24, 16, 4},
+                                                             {6, 24, 36, 24, 6},
+                                                             {4, 16, 24, 16, 4},
+                                                             {1,  4,  6,  4, 1} };
 
         #pragma HLS ARRAY_PARTITION variable=GAUSS_KERNEL complete dim=0
 
-		// 画像処理ループ
+        // 画像処理ループ
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
-				//--- ガウシアンフィルタ
-				int pix_gauss; // 出力画素値
+                //--- ガウシアンフィルタ
+                int pix_gauss; // 出力画素値
 
-				//-- ラインバッファ
+                //-- ラインバッファ
                 for(int yl = 0; yl < KERNEL_SIZE - 1; yl++) {
-					line_buf[yl][xi] = line_buf[yl + 1][xi];
-				}
+                    line_buf[yl][xi] = line_buf[yl + 1][xi];
+                }
                 
-				// 入力
-				line_buf[KERNEL_SIZE - 1][xi] = src[xi + yi*WIDTH];
+                // 入力
+                line_buf[KERNEL_SIZE - 1][xi] = src[xi + yi*WIDTH];
 
-				//-- ウィンドウバッファ（シフトレジスタ）
+                //-- ウィンドウバッファ（シフトレジスタ）
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     for(int xw = 0; xw < KERNEL_SIZE - 1; xw++) {
-						window_buf[yw][xw] = window_buf[yw][xw + 1];
-					}
-				}
+                        window_buf[yw][xw] = window_buf[yw][xw + 1];
+                    }
+                }
                 
-				// ラインバッファの各列を入力
+                // ラインバッファの各列を入力
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
-					window_buf[yw][KERNEL_SIZE - 1] = line_buf[yw][xi];
-				}
+                    window_buf[yw][KERNEL_SIZE - 1] = line_buf[yw][xi];
+                }
 
-				//-- 畳み込み演算
-				pix_gauss = 0;
+                //-- 畳み込み演算
+                pix_gauss = 0;
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     for(int xw = 0; xw < KERNEL_SIZE; xw++) {
-						pix_gauss += window_buf[yw][xw] * GAUSS_KERNEL[yw][xw];
-					}
-				}
+                        pix_gauss += window_buf[yw][xw] * GAUSS_KERNEL[yw][xw];
+                    }
+                }
 
-				// 8bit right shift
-				pix_gauss >>= 8;
+                // 8bit right shift
+                pix_gauss >>= 8;
 
-				// 出力
-				dst[xi + yi*WIDTH] = pix_gauss;
-			}
-		}
-	}
+                // 出力
+                dst[xi + yi*WIDTH] = pix_gauss;
+            }
+        }
+    }
 
-	template<int WIDTH, int HEIGHT>
+    template<int WIDTH, int HEIGHT>
     inline void HlsImProc<WIDTH, HEIGHT>::Sobel(unsigned char* src, vector_image* dst) {
         const int KERNEL_SIZE = 3;
 
@@ -300,10 +300,10 @@ namespace hlsimproc
                 // 勾配方向を算出
                 int t_int;
                 if(pix_h_sobel != 0) {
-                	t_int = pix_v_sobel * 256 / pix_h_sobel;
+                    t_int = pix_v_sobel * 256 / pix_h_sobel;
                 }
                 else {
-                	t_int = 0x7FFFFFFF;
+                    t_int = 0x7FFFFFFF;
                 }
 
                 // 112.5° ~ 157.5° (tan 112.5° ~= -2.4142, tan 157.5° ~= -0.4142)
@@ -338,7 +338,7 @@ namespace hlsimproc
         }
     }
 
-	template<int WIDTH, int HEIGHT>
+    template<int WIDTH, int HEIGHT>
     inline void HlsImProc<WIDTH, HEIGHT>::NonMaxSuppression(vector_image* src, unsigned char* dst) {
         const int WINDOW_SIZE = 3;
 
@@ -421,7 +421,7 @@ namespace hlsimproc
         }
     }
 
-	template<int WIDTH, int HEIGHT>
+    template<int WIDTH, int HEIGHT>
     inline void HlsImProc<WIDTH, HEIGHT>::HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr) {
         // 画像処理ループ
         for(int yi = 0; yi < HEIGHT; yi++) {
@@ -447,7 +447,7 @@ namespace hlsimproc
         }
     }
 
-	template<int WIDTH, int HEIGHT>
+    template<int WIDTH, int HEIGHT>
     inline void HlsImProc<WIDTH, HEIGHT>::HystThresholdComp(unsigned char* src, unsigned char* dst) {
         const int WINDOW_SIZE = 3;
 
@@ -464,7 +464,7 @@ namespace hlsimproc
                 #pragma HLS LOOP_FLATTEN off
 
                 //--- non-maximum suppression
-            	unsigned char pix_hyst = 0;  // 出力画素値
+                unsigned char pix_hyst = 0;  // 出力画素値
 
                 //-- ラインバッファ
                 for(int yl = 0; yl < WINDOW_SIZE - 1; yl++) {
@@ -510,7 +510,7 @@ namespace hlsimproc
                 #pragma HLS LOOP_FLATTEN off
                 
                 // 出力
-            	unsigned char pix = src[xi + yi*WIDTH];
+                unsigned char pix = src[xi + yi*WIDTH];
                 if((padding_size < xi && xi < WIDTH - padding_size) &&
                    (padding_size < yi && yi < HEIGHT - padding_size)) {
                     dst[xi + yi*WIDTH] = pix;
