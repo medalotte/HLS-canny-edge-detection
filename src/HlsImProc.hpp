@@ -2,8 +2,8 @@
   ------------------------------------
   (C) Kudo Yuya, September 2018. All rights reserved.
   Last Modified 2018-09-13
-  -----------------------------------
-  Vivado HLS対応画像処理実行クラス
+  ------------------------------------
+  Class of image processing for Vivado HLS
   ------------------------------------
 */
 
@@ -16,7 +16,7 @@
 
 namespace hlsimproc
 {
-    //--- 勾配方向の定義
+    //--- definition of gradient direction
     enum EDIR {
         DIR_0,
         DIR_45,
@@ -24,60 +24,62 @@ namespace hlsimproc
         DIR_135
     };
 
-    //--- 勾配情報を持った画像データ配列の構造体
+    //--- struct of image that have gradient info
     struct vector_image {
         unsigned char value;
         unsigned char grad;
     };
     
-    //--- 画像処理実行クラス
+    //--- class of exe image processing
     template<int WIDTH, int HEIGHT>
     class HlsImProc
     {
     public:
-        // AXI4-Stream形式の画像をGrayScale化してunsigned char配列に格納する
+        // AXI4-Stream -> GrayScale image
         void AXIS2GrayArray(hls::stream<ap_axiu<24,1,1,1> >& axis_src, unsigned char* dst);
-        // GrayScale化されたunsigned char配列をAXI4-Stream形式の画像に変換する
+        // GrayScale image -> AXI4-Stream
         void GrayArray2AXIS(unsigned char* src, hls::stream<ap_axiu<24,1,1,1> >& axis_dst);
-        // ガウシアンフィルタ（5x5）を実行する
+        // exe gaussian bler
         void GaussianBlur(unsigned char* src, unsigned char* dst);
-        // ソーベルフィルタを実行する
+        // exe sobel filter
         void Sobel(unsigned char* src, vector_image* dst);
-        // non-maximum suppression（非極大抑制）を実行する
+        // exe non-maximum suppression
         void NonMaxSuppression(vector_image* src, unsigned char* dst);
-        // ヒステリシス閾値化を実行する
+        // exe hysteresis threshold
         void HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr);
-        // ヒステリシス閾値化後の画像に対して近傍ピクセルとの比較演算を実行する
+        // exe comparison operation at neighboring pixels after exe hysteresis threshold
         void HystThresholdComp(unsigned char* src, unsigned char* dst);
-        // 境界ピクセルを0で埋める
+        // exe zero padding at boundary pixel
         void ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size);
     };
 
     template<int WIDTH, int HEIGHT>
     inline void HlsImProc<WIDTH, HEIGHT>::AXIS2GrayArray(hls::stream<ap_axiu<24,1,1,1> >& axis_src, unsigned char* dst) {
-        ap_axiu<24,1,1,1> axis_reader; // AXI4-Streamの読み取り用変数
+        ap_axiu<24,1,1,1> axis_reader; // for read AXI4-Stream
         bool sof = false;              // Start of Frame
         bool eol = false;              // End of Line
 
-        // user信号のアサートを待つ
+        // wait for the user signal to be asserted
         while (!sof) {
             #pragma HLS PIPELINE II=1
             #pragma HLS LOOP_TRIPCOUNT avg=0 max=0
+            
             axis_src >> axis_reader;
             sof = axis_reader.user.to_int();
         }
 
-        // 画像処理ループ
+        // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             eol = false;
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
-                // last信号がアサートされるまでpix取得
+                // get pix until the last signal to be asserted
                 if(sof || eol) {
-                    // user信号がアサートされているpxは取得済み
-                    // WIDTHが実際のフレームサイズ以上に設定された場合
+                    // when frame is started (first pix have already latched)
+                    // or
+                    // when WIDTH param set more than actual frame size
                     sof = false;
                     eol = axis_reader.last.to_int();
                 }
@@ -86,18 +88,17 @@ namespace hlsimproc
                     eol = axis_reader.last.to_int();
                 }
 
-                //--- グレイスケール処理
-                int pix_gray;  // 出力画素値
+                //--- grayscale processing
+                int pix_gray;
 
                 // Y = B*0.144 + G*0.587 + R*0.299
-                // 16ビット左シフトさせた近似値を使用
-                pix_gray =  9437* (axis_reader.data & 0x0000ff)
+                pix_gray = 9437*(axis_reader.data & 0x0000ff)
                     + 38469*((axis_reader.data & 0x00ff00) >> 8 )
                     + 19595*((axis_reader.data & 0xff0000) >> 16);
 
                 pix_gray >>= 16;
 
-                // 飽和処理（丸め誤差によるオーバーフロー対策）
+                // to consider saturation
                 if(pix_gray < 0) {
                     pix_gray = 0;
                 }
@@ -105,12 +106,12 @@ namespace hlsimproc
                     pix_gray = 255;
                 }
 
-                // dataを書き込む
+                // output
                 dst[xi + yi*WIDTH] = pix_gray;
             }
 
-            // WIDTHが実際のフレームサイズ以下に設定された場合
-            // last信号がアサートするまで読み込む
+            // when WIDTH param set less than actual frame size
+            // wait for the last signal to be asserted
             while (!eol) {
                 #pragma HLS pipeline II=1
                 #pragma HLS loop_tripcount avg=0 max=0
@@ -122,26 +123,25 @@ namespace hlsimproc
 
     template<int WIDTH, int HEIGHT>
     inline void HlsImProc<WIDTH, HEIGHT>::GrayArray2AXIS(unsigned char* src, hls::stream<ap_axiu<24,1,1,1> >& axis_dst) {
-        ap_axiu<24,1,1,1> axis_writer; // AXI4-Streamの書き込み用変数
+        ap_axiu<24,1,1,1> axis_writer; // for write AXI4-Stream
 
-        // 画像処理ループ
+        // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
-                // dataを書き込む
                 unsigned int pix_out = src[xi + yi*WIDTH];
                 axis_writer.data = pix_out << 16 | pix_out << 8 | pix_out;
 
-                // フレームの先頭でuser信号をアサートする
+                // assert user signal at start of frame
                 if (xi == 0 && yi == 0) {
                     axis_writer.user = 1;
                 }
                 else {
                     axis_writer.user = 0;
                 }
-                // 各ラインの末尾でlast信号をアサートする
+                // assert last signal at end of line
                 if (xi == (WIDTH - 1)) {
                     axis_writer.last = 1;
                 }
@@ -149,7 +149,7 @@ namespace hlsimproc
                     axis_writer.last = 0;
                 }
 
-                // AXI4-Stream出力
+                // output
                 axis_dst << axis_writer;
             }
         }
@@ -174,36 +174,36 @@ namespace hlsimproc
 
         #pragma HLS ARRAY_PARTITION variable=GAUSS_KERNEL complete dim=0
 
-        // 画像処理ループ
+        // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
-                //--- ガウシアンフィルタ
-                int pix_gauss; // 出力画素値
-
-                //-- ラインバッファ
+                //--- gaussian bler
+                int pix_gauss;
+                
+                //-- line buffer
                 for(int yl = 0; yl < KERNEL_SIZE - 1; yl++) {
                     line_buf[yl][xi] = line_buf[yl + 1][xi];
                 }
                 
-                // 入力
+                // write to line buffer
                 line_buf[KERNEL_SIZE - 1][xi] = src[xi + yi*WIDTH];
 
-                //-- ウィンドウバッファ（シフトレジスタ）
+                //-- window buffer
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     for(int xw = 0; xw < KERNEL_SIZE - 1; xw++) {
                         window_buf[yw][xw] = window_buf[yw][xw + 1];
                     }
                 }
                 
-                // ラインバッファの各列を入力
+                // write to window buffer
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     window_buf[yw][KERNEL_SIZE - 1] = line_buf[yw][xi];
                 }
 
-                //-- 畳み込み演算
+                //-- convolution
                 pix_gauss = 0;
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     for(int xw = 0; xw < KERNEL_SIZE; xw++) {
@@ -214,7 +214,7 @@ namespace hlsimproc
                 // 8bit right shift
                 pix_gauss >>= 8;
 
-                // 出力
+                // output
                 dst[xi + yi*WIDTH] = pix_gauss;
             }
         }
@@ -242,62 +242,60 @@ namespace hlsimproc
         #pragma HLS ARRAY_PARTITION variable=H_SOBEL_KERNEL complete dim=0
         #pragma HLS ARRAY_PARTITION variable=V_SOBEL_KERNEL complete dim=0
 
-        // 画像処理ループ
+        // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
-                //--- ソーベルフィルタ
-                int pix_sobel;  // 出力画素値
-                int grad_sobel; // 勾配方向
+                //--- sobel
+                int pix_sobel;
+                int grad_sobel;
 
-                //-- ラインバッファ
+                //-- line buffer
                 for(int yl = 0; yl < KERNEL_SIZE - 1; yl++) {
                     line_buf[yl][xi] = line_buf[yl + 1][xi];
                 }
-                // 入力
+                // write to line buffer
                 line_buf[KERNEL_SIZE - 1][xi] = src[xi + yi*WIDTH];
 
-                //-- ウィンドウバッファ
+                //-- window buffer
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     for(int xw = 0; xw < KERNEL_SIZE - 1; xw++) {
                         window_buf[yw][xw] = window_buf[yw][xw + 1];
                     }
                 }
-                // ラインバッファの各列を入力
+                // write to window buffer
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     window_buf[yw][KERNEL_SIZE - 1] = line_buf[yw][xi];
                 }
 
-                //-- 畳み込み演算
-                // 20180510 halfにするとノルム算出時にオーバーフローが起こる
+                //-- convolution
                 int pix_h_sobel = 0;
                 int pix_v_sobel = 0;
 
-                // 水平方向の畳み込み
+                // convolution using by holizonal kernel
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     for(int xw = 0; xw < KERNEL_SIZE; xw++) {
                         pix_h_sobel += window_buf[yw][xw] * H_SOBEL_KERNEL[yw][xw];
                     }
                 }
 
-                // 垂直方向の畳み込み
+                // convolution using by vertical kernel
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     for(int xw = 0; xw < KERNEL_SIZE; xw++) {
                         pix_v_sobel += window_buf[yw][xw] * V_SOBEL_KERNEL[yw][xw];
                     }
                 }
 
-                // 出力画素値を算出
                 pix_sobel = hls::sqrt(float(pix_h_sobel * pix_h_sobel + pix_v_sobel * pix_v_sobel));
 
-                // 飽和処理
+                // to consider saturation
                 if(255 < pix_sobel) {
                     pix_sobel = 255;
                 }
 
-                // 勾配方向を算出
+                // evaluate gradient direction
                 int t_int;
                 if(pix_h_sobel != 0) {
                     t_int = pix_v_sobel * 256 / pix_h_sobel;
@@ -323,13 +321,12 @@ namespace hlsimproc
                     grad_sobel = DIR_90;
                 }
 
-                // 出力
+                // output
                 if((KERNEL_SIZE < xi && xi < WIDTH - KERNEL_SIZE) &&
                    (KERNEL_SIZE < yi && yi < HEIGHT - KERNEL_SIZE)) {
                     dst[xi + yi*WIDTH].value = pix_sobel;
                     dst[xi + yi*WIDTH].grad  = grad_sobel;
                 }
-                // 境界ピクセルは0を出力する
                 else {
                     dst[xi + yi*WIDTH].value = 0;
                     dst[xi + yi*WIDTH].grad  = 0;
@@ -348,59 +345,58 @@ namespace hlsimproc
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
 
-        // 画像処理ループ
+        // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
                 //--- non-maximum suppression
-                unsigned char value_nms;  // 出力画素値
-                unsigned char grad_nms;   // 出力画素の勾配方向
+                unsigned char value_nms;
+                unsigned char grad_nms;
 
-                //-- ラインバッファ
+                //-- line buffer
                 for(int yl = 0; yl < WINDOW_SIZE - 1; yl++) {
                     line_buf[yl][xi] = line_buf[yl + 1][xi];
                 }
-                // 入力
+                // write to line buffer
                 line_buf[WINDOW_SIZE - 1][xi] = src[xi + yi*WIDTH];
 
-                //-- ウィンドウバッファ
+                //-- window buffer
                 for(int yw = 0; yw < WINDOW_SIZE; yw++) {
                     for(int xw = 0; xw < WINDOW_SIZE - 1; xw++) {
                         window_buf[yw][xw] = window_buf[yw][xw + 1];
                     }
                 }
-                // ラインバッファの各列を入力
+                // write to window buffer
                 for(int yw = 0; yw < WINDOW_SIZE; yw++) {
                     window_buf[yw][WINDOW_SIZE - 1] = line_buf[yw][xi];
                 }
 
-                //-- 勾配方向に対する比較演算
                 value_nms = window_buf[WINDOW_SIZE / 2][WINDOW_SIZE / 2].value;
                 grad_nms = window_buf[WINDOW_SIZE / 2][WINDOW_SIZE / 2].grad;
-                // grad 0° -> 左, 右
+                // grad 0° -> left, right
                 if(grad_nms == DIR_0) {
                     if(value_nms < window_buf[WINDOW_SIZE / 2][0].value ||
                        value_nms < window_buf[WINDOW_SIZE / 2][WINDOW_SIZE - 1].value) {
                         value_nms = 0;
                     }
                 }
-                // grad 45° -> 左上, 右下
+                // grad 45° -> upper left, bottom right
                 else if(grad_nms == DIR_45) {
                     if(value_nms < window_buf[0][0].value ||
                        value_nms < window_buf[WINDOW_SIZE - 1][WINDOW_SIZE - 1].value) {
                         value_nms = 0;
                     }
                 }
-                // grad 90° -> 上, 下
+                // grad 90° -> upper, bottom
                 else if(grad_nms == DIR_90) {
                     if(value_nms < window_buf[0][WINDOW_SIZE - 1].value ||
                        value_nms < window_buf[WINDOW_SIZE - 1][WINDOW_SIZE / 2].value) {
                         value_nms = 0;
                     }
                 }
-                // grad 135° -> 左下, 右上
+                // grad 135° -> bottom left, upper right
                 else if(grad_nms == DIR_135) {
                     if(value_nms < window_buf[WINDOW_SIZE - 1][0].value ||
                        value_nms < window_buf[0][WINDOW_SIZE - 1].value) {
@@ -408,13 +404,12 @@ namespace hlsimproc
                     }
                 }
 
-                // 出力
+                // output
                 if((WINDOW_SIZE < xi && xi < WIDTH - WINDOW_SIZE) &&
                    (WINDOW_SIZE < yi && yi < HEIGHT - WINDOW_SIZE)) {
                     dst[xi + yi*WIDTH] = value_nms;
                 }
                 else {
-                    // 境界ピクセルは0を出力する
                     dst[xi + yi*WIDTH] = 0;
                 }
             }
@@ -423,14 +418,14 @@ namespace hlsimproc
 
     template<int WIDTH, int HEIGHT>
     inline void HlsImProc<WIDTH, HEIGHT>::HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr) {
-        // 画像処理ループ
+        // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
-                //--- ヒステリシス閾値化
-                int pix_hyst;  // 出力画素値
+                //--- hysteresis threshold
+                int pix_hyst;
 
                 if(src[xi + yi*WIDTH] < lthr) {
                     pix_hyst = 0;
@@ -441,7 +436,8 @@ namespace hlsimproc
                 else {
                     pix_hyst = 1;
                 }
-                // 出力
+                
+                // output
                 dst[xi + yi*WIDTH] = pix_hyst;
             }
         }
@@ -457,34 +453,34 @@ namespace hlsimproc
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
 
-        // 画像処理ループ
+        // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
                 //--- non-maximum suppression
-                unsigned char pix_hyst = 0;  // 出力画素値
+                unsigned char pix_hyst = 0;
 
-                //-- ラインバッファ
+                //-- line buffer
                 for(int yl = 0; yl < WINDOW_SIZE - 1; yl++) {
                     line_buf[yl][xi] = line_buf[yl + 1][xi];
                 }
-                // 入力
+                // write to line buffer
                 line_buf[WINDOW_SIZE - 1][xi] = src[xi + yi*WIDTH];
 
-                //-- ウィンドウバッファ
+                //-- window buffer
                 for(int yw = 0; yw < WINDOW_SIZE; yw++) {
                     for(int xw = 0; xw < WINDOW_SIZE - 1; xw++) {
                         window_buf[yw][xw] = window_buf[yw][xw + 1];
                     }
                 }
-                // ラインバッファの各列を入力
+                // write to window buffer
                 for(int yw = 0; yw < WINDOW_SIZE; yw++) {
                     window_buf[yw][WINDOW_SIZE - 1] = line_buf[yw][xi];
                 }
 
-                //-- 比較演算
+                //-- comparison operation
                 for(int yw = 0; yw < WINDOW_SIZE; yw++) {
                     for(int xw = 0; xw < WINDOW_SIZE; xw++) {
                         if(window_buf[WINDOW_SIZE / 2][WINDOW_SIZE / 2] != 0) {
@@ -495,7 +491,7 @@ namespace hlsimproc
                     }
                 }
 
-                // 出力
+                // output
                 dst[xi + yi*WIDTH] = pix_hyst;
             }
         }
@@ -503,13 +499,13 @@ namespace hlsimproc
     
     template<int WIDTH, int HEIGHT>
     inline void HlsImProc<WIDTH, HEIGHT>::ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size) {
-        // 画像処理ループ
+        // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
                 
-                // 出力
+                // output
                 unsigned char pix = src[xi + yi*WIDTH];
                 if((padding_size < xi && xi < WIDTH - padding_size) &&
                    (padding_size < yi && yi < HEIGHT - padding_size)) {
