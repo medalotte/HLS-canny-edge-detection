@@ -16,7 +16,7 @@
 
 namespace hlsimproc
 {
-	//--- 勾配方向の定義
+    //--- 勾配方向の定義
     enum EDIR {
         DIR_0,
         DIR_45,
@@ -24,12 +24,12 @@ namespace hlsimproc
         DIR_135
     };
 
-	//--- 勾配情報を持った画像データ配列の構造体
-	struct vector_image {
-		unsigned char value;
-		unsigned char grad;
-	};
-
+    //--- 勾配情報を持った画像データ配列の構造体
+    struct vector_image {
+        unsigned char value;
+        unsigned char grad;
+    };
+    
     //--- 画像処理実行クラス
     template<int WIDTH, int HEIGHT>
     class HlsImProc
@@ -67,106 +67,106 @@ namespace hlsimproc
             sof = axis_reader.user.to_int();
         }
 
-		// 画像処理ループ
+        // 画像処理ループ
         for(int yi = 0; yi < HEIGHT; yi++) {
-			eol = false;
+            eol = false;
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
-				// last信号がアサートされるまでpix取得
-				if(sof || eol) {
-					// user信号がアサートされているpxは取得済み
-					// WIDTHが実際のフレームサイズ以上に設定された場合
-					sof = false;
-					eol = axis_reader.last.to_int();
-				}
+                // last信号がアサートされるまでpix取得
+                if(sof || eol) {
+                    // user信号がアサートされているpxは取得済み
+                    // WIDTHが実際のフレームサイズ以上に設定された場合
+                    sof = false;
+                    eol = axis_reader.last.to_int();
+                }
                 else {
-					axis_src >> axis_reader;
-					eol = axis_reader.last.to_int();
-				}
+                    axis_src >> axis_reader;
+                    eol = axis_reader.last.to_int();
+                }
 
-				//--- グレイスケール処理
-				int pix_gray;  // 出力画素値
+                //--- グレイスケール処理
+                int pix_gray;  // 出力画素値
 
-				// Y = B*0.144 + G*0.587 + R*0.299
-				// 16ビット左シフトさせた近似値を使用
-				pix_gray =  9437* (axis_reader.data & 0x0000ff)
+                // Y = B*0.144 + G*0.587 + R*0.299
+                // 16ビット左シフトさせた近似値を使用
+                pix_gray =  9437* (axis_reader.data & 0x0000ff)
                     + 38469*((axis_reader.data & 0x00ff00) >> 8 )
                     + 19595*((axis_reader.data & 0xff0000) >> 16);
 
-				pix_gray >>= 16;
+                pix_gray >>= 16;
 
-				// 飽和処理（丸め誤差によるオーバーフロー対策）
-				if(pix_gray < 0) {
-					pix_gray = 0;
-				}
+                // 飽和処理（丸め誤差によるオーバーフロー対策）
+                if(pix_gray < 0) {
+                    pix_gray = 0;
+                }
                 else if(pix_gray > 255) {
-					pix_gray = 255;
-				}
+                    pix_gray = 255;
+                }
 
-				// dataを書き込む
-				dst[xi + yi*WIDTH] = pix_gray;
-			}
+                // dataを書き込む
+                dst[xi + yi*WIDTH] = pix_gray;
+            }
 
-			// WIDTHが実際のフレームサイズ以下に設定された場合
-			// last信号がアサートするまで読み込む
+            // WIDTHが実際のフレームサイズ以下に設定された場合
+            // last信号がアサートするまで読み込む
             while (!eol) {
                 #pragma HLS pipeline II=1
                 #pragma HLS loop_tripcount avg=0 max=0
-				axis_src >> axis_reader;
-				eol = axis_reader.last.to_int();
-			}
-		}
-	}
+                axis_src >> axis_reader;
+                eol = axis_reader.last.to_int();
+            }
+        }
+    }
 
-	template<int WIDTH, int HEIGHT>
-	inline void HlsImProc<WIDTH, HEIGHT>::GrayArray2AXIS(unsigned char* src, hls::stream<ap_axiu<24,1,1,1> >& axis_dst) {
-		ap_axiu<24,1,1,1> axis_writer; // AXI4-Streamの書き込み用変数
+    template<int WIDTH, int HEIGHT>
+    inline void HlsImProc<WIDTH, HEIGHT>::GrayArray2AXIS(unsigned char* src, hls::stream<ap_axiu<24,1,1,1> >& axis_dst) {
+        ap_axiu<24,1,1,1> axis_writer; // AXI4-Streamの書き込み用変数
 
-		// 画像処理ループ
+        // 画像処理ループ
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
 
-				// dataを書き込む
-				unsigned int pix_out = src[xi + yi*WIDTH];
-				axis_writer.data = pix_out << 16 | pix_out << 8 | pix_out;
+                // dataを書き込む
+                unsigned int pix_out = src[xi + yi*WIDTH];
+                axis_writer.data = pix_out << 16 | pix_out << 8 | pix_out;
 
-				// フレームの先頭でuser信号をアサートする
-				if (xi == 0 && yi == 0) {
-					axis_writer.user = 1;
-				}
+                // フレームの先頭でuser信号をアサートする
+                if (xi == 0 && yi == 0) {
+                    axis_writer.user = 1;
+                }
                 else {
-					axis_writer.user = 0;
-				}
-				// 各ラインの末尾でlast信号をアサートする
-				if (xi == (WIDTH - 1)) {
-					axis_writer.last = 1;
-				}
+                    axis_writer.user = 0;
+                }
+                // 各ラインの末尾でlast信号をアサートする
+                if (xi == (WIDTH - 1)) {
+                    axis_writer.last = 1;
+                }
                 else {
-					axis_writer.last = 0;
-				}
+                    axis_writer.last = 0;
+                }
 
-				// AXI4-Stream出力
-				axis_dst << axis_writer;
-			}
-		}
-	}
+                // AXI4-Stream出力
+                axis_dst << axis_writer;
+            }
+        }
+    }
         
-	template<int WIDTH, int HEIGHT>
-	inline void HlsImProc<WIDTH, HEIGHT>::GaussianBlur(unsigned char* src, unsigned char* dst) {
-		const int KERNEL_SIZE = 5;
+    template<int WIDTH, int HEIGHT>
+    inline void HlsImProc<WIDTH, HEIGHT>::GaussianBlur(unsigned char* src, unsigned char* dst) {
+        const int KERNEL_SIZE = 5;
 
-		unsigned char line_buf[KERNEL_SIZE][WIDTH];
-		unsigned char window_buf[KERNEL_SIZE][KERNEL_SIZE];
+        unsigned char line_buf[KERNEL_SIZE][WIDTH];
+        unsigned char window_buf[KERNEL_SIZE][KERNEL_SIZE];
 
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
         
-		//-- 5x5 Gaussian kernel (8bit left shift)
-		const int GAUSS_KERNEL[KERNEL_SIZE][KERNEL_SIZE] = { {1,  4,  6,  4, 1},
+        //-- 5x5 Gaussian kernel (8bit left shift)
+        const int GAUSS_KERNEL[KERNEL_SIZE][KERNEL_SIZE] = { {1,  4,  6,  4, 1},
                                                              {4, 16, 24, 16, 4},
                                                              {6, 24, 36, 24, 6},
                                                              {4, 16, 24, 16, 4},

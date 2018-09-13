@@ -22,13 +22,13 @@ unsigned char fifo7[MAX_WIDTH * MAX_HEIGHT];
 
 // Top Function
 void canny_edge_detection(stream<rgb_image>& axis_in, stream<rgb_image>& axis_out, unsigned char& hist_hthr, unsigned char& hist_lthr) {
-	// インターフェース指定
+    // インターフェース指定
     #pragma HLS INTERFACE axis port=axis_in
     #pragma HLS INTERFACE axis port=axis_out
     #pragma HLS INTERFACE s_axilite port=hist_hthr bundle=CONTROL_BUS clock=s_axi_aclk
     #pragma HLS INTERFACE s_axilite port=hist_lthr bundle=CONTROL_BUS clock=s_axi_aclk
     #pragma HLS INTERFACE ap_ctrl_none port=return
-	// データフロー指定
+    // データフロー指定
     #pragma HLS DATAFLOW
     // FIFO指定
     #pragma HLS STREAM variable=fifo1 depth=1 dim=1
