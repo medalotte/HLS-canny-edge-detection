@@ -1,7 +1,7 @@
 /*
   ------------------------------------
   (C) Kudo Yuya, September 2018. All rights reserved.
-  Last Modified 2018-09-13
+  Last Modified 2018-10-17
   ------------------------------------
   Class of image processing for Vivado HLS
   ------------------------------------
@@ -33,14 +33,6 @@ namespace hlsimproc
     template<int WIDTH, int HEIGHT>
     class HlsImProc
     {
-        //--- definition of gradient direction
-        enum EDIR {
-            DIR_0,
-            DIR_45,
-            DIR_90,
-            DIR_135
-        };
-
         public:
         // AXI4-Stream -> GrayScale image
         void AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst);
@@ -58,6 +50,15 @@ namespace hlsimproc
         void HystThresholdComp(unsigned char* src, unsigned char* dst);
         // exe zero padding at boundary pixel
         void ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size);
+
+        private:
+        //--- definition of gradient direction
+        enum EDIR {
+            DIR_0,
+            DIR_45,
+            DIR_90,
+            DIR_135
+        };
     };
 
     template<int WIDTH, int HEIGHT>
