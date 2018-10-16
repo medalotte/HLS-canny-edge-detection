@@ -6,7 +6,7 @@ Last Modified 2018-09-13
 */
 
 #include "canny_edge_detection.h"
-#include "HlsImProc.hpp"
+
 using namespace hls;
 using namespace hlsimproc;
 

@@ -11,19 +11,18 @@
 #define __HLS_IM_PROC__
 
 #include <hls_stream.h>
-#include <ap_axi_sdata.h>
 #include <hls_math.h>
 
 namespace hlsimproc
 {
-    //--- definition of gradient direction
-    enum EDIR {
-        DIR_0,
-        DIR_45,
-        DIR_90,
-        DIR_135
+    //--- struct for image flowing through AXI4-Stream
+    template<int D>
+    struct im_axis{
+        ap_uint<D>       data;
+        ap_uint<1>       user;
+        ap_uint<1>       last;
     };
-
+    
     //--- struct of image that have gradient info
     struct vector_image {
         unsigned char value;
@@ -34,11 +33,19 @@ namespace hlsimproc
     template<int WIDTH, int HEIGHT>
     class HlsImProc
     {
-    public:
+        //--- definition of gradient direction
+        enum EDIR {
+            DIR_0,
+            DIR_45,
+            DIR_90,
+            DIR_135
+        };
+
+        public:
         // AXI4-Stream -> GrayScale image
-        void AXIS2GrayArray(hls::stream<ap_axiu<24,1,1,1> >& axis_src, unsigned char* dst);
+        void AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst);
         // GrayScale image -> AXI4-Stream
-        void GrayArray2AXIS(unsigned char* src, hls::stream<ap_axiu<24,1,1,1> >& axis_dst);
+        void GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst);
         // exe gaussian bler
         void GaussianBlur(unsigned char* src, unsigned char* dst);
         // exe sobel filter
@@ -54,8 +61,8 @@ namespace hlsimproc
     };
 
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::AXIS2GrayArray(hls::stream<ap_axiu<24,1,1,1> >& axis_src, unsigned char* dst) {
-        ap_axiu<24,1,1,1> axis_reader; // for read AXI4-Stream
+    inline void HlsImProc<WIDTH, HEIGHT>::AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst) {
+        im_axis<24> axis_reader; // for read AXI4-Stream
         bool sof = false;              // Start of Frame
         bool eol = false;              // End of Line
 
@@ -122,8 +129,8 @@ namespace hlsimproc
     }
 
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::GrayArray2AXIS(unsigned char* src, hls::stream<ap_axiu<24,1,1,1> >& axis_dst) {
-        ap_axiu<24,1,1,1> axis_writer; // for write AXI4-Stream
+    inline void HlsImProc<WIDTH, HEIGHT>::GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst) {
+        im_axis<24> axis_writer; // for write AXI4-Stream
 
         // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {

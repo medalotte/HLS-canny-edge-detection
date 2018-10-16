@@ -4,6 +4,8 @@
 #include <hls_stream.h>
 #include <ap_axi_sdata.h>
 
+#include "HlsImProc.hpp"
+
 #define MAX_WIDTH  1280
 #define MAX_HEIGHT 720
 
@@ -12,7 +14,7 @@
 #define OUTPUT_IMAGE "out.bmp"
 //---
 
-typedef ap_axiu<24,1,1,1> rgb_image;
+typedef hlsimproc::im_axis<24> rgb_image;
 
 void canny_edge_detection(hls::stream<rgb_image>& axis_in, hls::stream<rgb_image>& axis_out, unsigned char& hist_hthr, unsigned char& hist_lthr);
 
