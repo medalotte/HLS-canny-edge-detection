@@ -37,24 +37,28 @@ void canny_edge_detection(stream<rgb_image>& axis_in, stream<rgb_image>& axis_ou
     #pragma HLS STREAM variable=fifo6 depth=1 dim=1
     #pragma HLS STREAM variable=fifo7 depth=1 dim=1
 
-    //--- describe image processing
-    HlsImProc<MAX_WIDTH, MAX_HEIGHT> improc;
-    
     // AXI4-Stream -> GrayScale image
-    improc.AXIS2GrayArray(axis_in, fifo1);
+	HlsImProc::AXIS2GrayArray<MAX_WIDTH, MAX_HEIGHT>(axis_in, fifo1);
+
     // exe gaussian bler
-    improc.GaussianBlur(fifo1, fifo2);
-    // exe sobel filter
-    improc.Sobel(fifo2, fifo3);
-    // exe non-maximum suppression
-    improc.NonMaxSuppression(fifo3, fifo4);
-    // exe zero padding at boundary pixel
+	HlsImProc::GaussianBlur<MAX_WIDTH, MAX_HEIGHT>(fifo1, fifo2);
+
+	// exe sobel filter
+	HlsImProc::Sobel<MAX_WIDTH, MAX_HEIGHT>(fifo2, fifo3);
+
+	// exe non-maximum suppression
+	HlsImProc::NonMaxSuppression<MAX_WIDTH, MAX_HEIGHT>(fifo3, fifo4);
+
+	// exe zero padding at boundary pixel
     unsigned int padding_size = 5;
-    improc.ZeroPadding(fifo4, fifo5, padding_size);
+    HlsImProc::ZeroPadding<MAX_WIDTH, MAX_HEIGHT>(fifo4, fifo5, padding_size);
+
     // exe hysteresis threshold
-    improc.HystThreshold(fifo5, fifo6, hist_hthr, hist_lthr);
+    HlsImProc::HystThreshold<MAX_WIDTH, MAX_HEIGHT>(fifo5, fifo6, hist_hthr, hist_lthr);
+
     // exe comparison operation at neighboring pixels after exe hysteresis threshold
-    improc.HystThresholdComp(fifo6, fifo7);
+    HlsImProc::HystThresholdComp<MAX_WIDTH, MAX_HEIGHT>(fifo6, fifo7);
+
     // GrayScale image -> AXI4-Stream
-    improc.GrayArray2AXIS(fifo7, axis_out);
+    HlsImProc::GrayArray2AXIS<MAX_WIDTH, MAX_HEIGHT>(fifo7, axis_out);
 }

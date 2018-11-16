@@ -30,26 +30,33 @@ namespace hlsimproc
     };
     
     //--- class of exe image processing
-    template<int WIDTH, int HEIGHT>
     class HlsImProc
     {
         public:
         // AXI4-Stream -> GrayScale image
-        void AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst);
+        template<int WIDTH, int HEIGHT>
+        static void AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst);
         // GrayScale image -> AXI4-Stream
-        void GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst);
+        template<int WIDTH, int HEIGHT>
+        static void GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst);
         // exe gaussian bler
-        void GaussianBlur(unsigned char* src, unsigned char* dst);
+        template<int WIDTH, int HEIGHT>
+        static void GaussianBlur(unsigned char* src, unsigned char* dst);
         // exe sobel filter
-        void Sobel(unsigned char* src, vector_image* dst);
+        template<int WIDTH, int HEIGHT>
+        static void Sobel(unsigned char* src, vector_image* dst);
         // exe non-maximum suppression
-        void NonMaxSuppression(vector_image* src, unsigned char* dst);
+        template<int WIDTH, int HEIGHT>
+        static void NonMaxSuppression(vector_image* src, unsigned char* dst);
         // exe hysteresis threshold
-        void HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr);
+        template<int WIDTH, int HEIGHT>
+        static void HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr);
         // exe comparison operation at neighboring pixels after exe hysteresis threshold
-        void HystThresholdComp(unsigned char* src, unsigned char* dst);
+        template<int WIDTH, int HEIGHT>
+        static void HystThresholdComp(unsigned char* src, unsigned char* dst);
         // exe zero padding at boundary pixel
-        void ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size);
+        template<int WIDTH, int HEIGHT>
+        static void ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size);
 
         private:
         //--- definition of gradient direction
@@ -62,7 +69,7 @@ namespace hlsimproc
     };
 
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst) {
+    inline void HlsImProc::AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst) {
         im_axis<24> axis_reader; // for read AXI4-Stream
         bool sof = false;              // Start of Frame
         bool eol = false;              // End of Line
@@ -130,7 +137,7 @@ namespace hlsimproc
     }
 
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst) {
+    inline void HlsImProc::GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst) {
         im_axis<24> axis_writer; // for write AXI4-Stream
 
         // image proc loop
@@ -164,7 +171,7 @@ namespace hlsimproc
     }
         
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::GaussianBlur(unsigned char* src, unsigned char* dst) {
+    inline void HlsImProc::GaussianBlur(unsigned char* src, unsigned char* dst) {
         const int KERNEL_SIZE = 5;
 
         unsigned char line_buf[KERNEL_SIZE][WIDTH];
@@ -229,7 +236,7 @@ namespace hlsimproc
     }
 
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::Sobel(unsigned char* src, vector_image* dst) {
+    inline void HlsImProc::Sobel(unsigned char* src, vector_image* dst) {
         const int KERNEL_SIZE = 3;
 
         unsigned char line_buf[KERNEL_SIZE][WIDTH];
@@ -344,7 +351,7 @@ namespace hlsimproc
     }
 
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::NonMaxSuppression(vector_image* src, unsigned char* dst) {
+    inline void HlsImProc::NonMaxSuppression(vector_image* src, unsigned char* dst) {
         const int WINDOW_SIZE = 3;
 
         vector_image line_buf[WINDOW_SIZE][WIDTH];
@@ -425,7 +432,7 @@ namespace hlsimproc
     }
 
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr) {
+    inline void HlsImProc::HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr) {
         // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
@@ -452,7 +459,7 @@ namespace hlsimproc
     }
 
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::HystThresholdComp(unsigned char* src, unsigned char* dst) {
+    inline void HlsImProc::HystThresholdComp(unsigned char* src, unsigned char* dst) {
         const int WINDOW_SIZE = 3;
 
         unsigned char line_buf[WINDOW_SIZE][WIDTH];
@@ -506,7 +513,7 @@ namespace hlsimproc
     }
     
     template<int WIDTH, int HEIGHT>
-    inline void HlsImProc<WIDTH, HEIGHT>::ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size) {
+    inline void HlsImProc::ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size) {
         // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
