@@ -1,5 +1,5 @@
-#ifndef __CANNY_EDGE_DETECTION__
-#define __CANNY_EDGE_DETECTION__
+#ifndef SRC_CANNY_EDGE_DETECTION_H_
+#define SRC_CANNY_EDGE_DETECTION_H_
 
 #include <hls_stream.h>
 #include <ap_axi_sdata.h>
@@ -18,4 +18,4 @@ typedef hlsimproc::im_axis<24> rgb_image;
 
 void canny_edge_detection(hls::stream<rgb_image>& axis_in, hls::stream<rgb_image>& axis_out, unsigned char& hist_hthr, unsigned char& hist_lthr);
 
-#endif /* !__CANNY_EDGE_DETECTION__ */
+#endif /* SRC_CANNY_EDGE_DETECTION_H_ */

@@ -1,14 +1,14 @@
 /*
   ------------------------------------
-  (C) Kudo Yuya, September 2018. All rights reserved.
-  Last Modified 2018-10-17
+  (C) Kudo Yuya, Nov. 2018. All rights reserved.
+  Last Modified 2018-11-17
   ------------------------------------
   Class of image processing for Vivado HLS
   ------------------------------------
 */
 
-#ifndef __HLS_IM_PROC__
-#define __HLS_IM_PROC__
+#ifndef SRC_HLS_IM_PROC_HPP_
+#define SRC_HLS_IM_PROC_HPP_
 
 #include <hls_stream.h>
 #include <hls_math.h>
@@ -527,4 +527,4 @@ namespace hlsimproc
     }
 }
 
-#endif /* !__HLS_IM_PROC__ */
+#endif /* SRC_HLS_IM_PROC_HPP_ */
