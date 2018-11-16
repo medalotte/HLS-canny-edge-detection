@@ -15,21 +15,20 @@
 
 namespace hlsimproc
 {
-    //--- struct for image flowing through AXI4-Stream
+    // struct for image flowing through AXI4-Stream
     template<int D>
     struct im_axis{
-        ap_uint<D>       data;
-        ap_uint<1>       user;
-        ap_uint<1>       last;
+        ap_uint<D> data;
+        ap_uint<1> user;
+        ap_uint<1> last;
     };
     
-    //--- struct of image that have gradient info
+    // struct of image that have gradient info
     struct vector_image {
         unsigned char value;
         unsigned char grad;
     };
     
-    //--- class of exe image processing
     class HlsImProc
     {
         public:
@@ -39,27 +38,27 @@ namespace hlsimproc
         // GrayScale image -> AXI4-Stream
         template<int WIDTH, int HEIGHT>
         static void GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst);
-        // exe gaussian bler
+        // gaussian bler
         template<int WIDTH, int HEIGHT>
         static void GaussianBlur(unsigned char* src, unsigned char* dst);
-        // exe sobel filter
+        // sobel filter
         template<int WIDTH, int HEIGHT>
         static void Sobel(unsigned char* src, vector_image* dst);
-        // exe non-maximum suppression
+        // non-maximum suppression
         template<int WIDTH, int HEIGHT>
         static void NonMaxSuppression(vector_image* src, unsigned char* dst);
-        // exe hysteresis threshold
+        // hysteresis threshold
         template<int WIDTH, int HEIGHT>
         static void HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr);
-        // exe comparison operation at neighboring pixels after exe hysteresis threshold
+        // comparison operation at neighboring pixels after exe hysteresis threshold
         template<int WIDTH, int HEIGHT>
         static void HystThresholdComp(unsigned char* src, unsigned char* dst);
-        // exe zero padding at boundary pixel
+        // zero padding at boundary pixel
         template<int WIDTH, int HEIGHT>
         static void ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size);
 
         private:
-        //--- definition of gradient direction
+        // definition of gradient direction
         enum EDIR {
             DIR_0,
             DIR_45,
@@ -71,8 +70,8 @@ namespace hlsimproc
     template<int WIDTH, int HEIGHT>
     inline void HlsImProc::AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst) {
         im_axis<24> axis_reader; // for read AXI4-Stream
-        bool sof = false;              // Start of Frame
-        bool eol = false;              // End of Line
+        bool sof = false;        // Start of Frame
+        bool eol = false;        // End of Line
 
         // wait for the user signal to be asserted
         while (!sof) {
