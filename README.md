@@ -10,7 +10,7 @@
 - This road tile is used in
 [FPT2018 FPGA Design Competition](https://wwp.shizuoka.ac.jp/fpt-design-contest/).
 
-<img src="assets/test_img.bmp" alt="C simulation result">
+<img src="testbench/test_img.bmp" alt="C simulation result">
 
 <img src="assets/out.bmp" alt="C simulation result">
 
