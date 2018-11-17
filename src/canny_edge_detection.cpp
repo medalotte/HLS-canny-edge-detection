@@ -38,18 +38,18 @@ void canny_edge_detection(stream<rgb_image>& axis_in, stream<rgb_image>& axis_ou
     #pragma HLS STREAM variable=fifo7 depth=1 dim=1
 
     // AXI4-Stream -> GrayScale image
-	HlsImProc::AXIS2GrayArray<MAX_WIDTH, MAX_HEIGHT>(axis_in, fifo1);
+    HlsImProc::AXIS2GrayArray<MAX_WIDTH, MAX_HEIGHT>(axis_in, fifo1);
 
     // exe gaussian bler
-	HlsImProc::GaussianBlur<MAX_WIDTH, MAX_HEIGHT>(fifo1, fifo2);
+    HlsImProc::GaussianBlur<MAX_WIDTH, MAX_HEIGHT>(fifo1, fifo2);
 
-	// exe sobel filter
-	HlsImProc::Sobel<MAX_WIDTH, MAX_HEIGHT>(fifo2, fifo3);
+    // exe sobel filter
+    HlsImProc::Sobel<MAX_WIDTH, MAX_HEIGHT>(fifo2, fifo3);
 
-	// exe non-maximum suppression
-	HlsImProc::NonMaxSuppression<MAX_WIDTH, MAX_HEIGHT>(fifo3, fifo4);
+    // exe non-maximum suppression
+    HlsImProc::NonMaxSuppression<MAX_WIDTH, MAX_HEIGHT>(fifo3, fifo4);
 
-	// exe zero padding at boundary pixel
+    // exe zero padding at boundary pixel
     unsigned int padding_size = 5;
     HlsImProc::ZeroPadding<MAX_WIDTH, MAX_HEIGHT>(fifo4, fifo5, padding_size);
 
