@@ -10,66 +10,66 @@
 #ifndef SRC_HLS_IM_PROC_HPP_
 #define SRC_HLS_IM_PROC_HPP_
 
+#include <stdint.h>
+
 #include <hls_stream.h>
 #include <hls_math.h>
 
 namespace hlsimproc
 {
+    // definition of gradient direction
+    enum GradDir {
+        DIR_0,
+        DIR_45,
+        DIR_90,
+        DIR_135
+    };
+    
     // struct for image flowing through AXI4-Stream
     template<int D>
-    struct im_axis{
+    struct ImAxis {
         ap_uint<D> data;
         ap_uint<1> user;
         ap_uint<1> last;
     };
     
-    // struct of image that have gradient info
-    struct vector_image {
-        unsigned char value;
-        unsigned char grad;
+    // struct of pixel that have gradient info
+    struct GradPix {
+        uint8_t value;
+        GradDir grad;
     };
     
-    class HlsImProc
-    {
+    class HlsImProc {
         public:
         // AXI4-Stream -> GrayScale image
-        template<int WIDTH, int HEIGHT>
-        static void AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst);
+        template<uint32_t WIDTH, uint32_t HEIGHT>
+        static void AXIS2GrayArray(hls::stream<ImAxis<24> >& axis_src, uint8_t* dst);
         // GrayScale image -> AXI4-Stream
-        template<int WIDTH, int HEIGHT>
-        static void GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst);
+        template<uint32_t WIDTH, uint32_t HEIGHT>
+        static void GrayArray2AXIS(uint8_t* src, hls::stream<ImAxis<24> >& axis_dst);
         // gaussian bler
-        template<int WIDTH, int HEIGHT>
-        static void GaussianBlur(unsigned char* src, unsigned char* dst);
+        template<uint32_t WIDTH, uint32_t HEIGHT>
+        static void GaussianBlur(uint8_t* src, uint8_t* dst);
         // sobel filter
-        template<int WIDTH, int HEIGHT>
-        static void Sobel(unsigned char* src, vector_image* dst);
+        template<uint32_t WIDTH, uint32_t HEIGHT>
+        static void Sobel(uint8_t* src, GradPix* dst);
         // non-maximum suppression
-        template<int WIDTH, int HEIGHT>
-        static void NonMaxSuppression(vector_image* src, unsigned char* dst);
+        template<uint32_t WIDTH, uint32_t HEIGHT>
+        static void NonMaxSuppression(GradPix* src, uint8_t* dst);
         // hysteresis threshold
-        template<int WIDTH, int HEIGHT>
-        static void HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr);
+        template<uint32_t WIDTH, uint32_t HEIGHT>
+        static void HystThreshold(uint8_t* src, uint8_t* dst, uint8_t hthr, uint8_t lthr);
         // comparison operation at neighboring pixels after exe hysteresis threshold
-        template<int WIDTH, int HEIGHT>
-        static void HystThresholdComp(unsigned char* src, unsigned char* dst);
+        template<uint32_t WIDTH, uint32_t HEIGHT>
+        static void HystThresholdComp(uint8_t* src, uint8_t* dst);
         // zero padding at boundary pixel
-        template<int WIDTH, int HEIGHT>
-        static void ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size);
-
-        private:
-        // definition of gradient direction
-        enum EDIR {
-            DIR_0,
-            DIR_45,
-            DIR_90,
-            DIR_135
-        };
+        template<uint32_t WIDTH, uint32_t HEIGHT>
+        static void ZeroPadding(uint8_t* src, uint8_t* dst, uint32_t padding_size);
     };
 
-    template<int WIDTH, int HEIGHT>
-    inline void HlsImProc::AXIS2GrayArray(hls::stream<im_axis<24> >& axis_src, unsigned char* dst) {
-        im_axis<24> axis_reader; // for read AXI4-Stream
+    template<uint32_t WIDTH, uint32_t HEIGHT>
+    inline void HlsImProc::AXIS2GrayArray(hls::stream<ImAxis<24> >& axis_src, uint8_t* dst) {
+        ImAxis<24> axis_reader; // for read AXI4-Stream
         bool sof = false;        // Start of Frame
         bool eol = false;        // End of Line
 
@@ -127,17 +127,17 @@ namespace hlsimproc
             // when WIDTH param set less than actual frame size
             // wait for the last signal to be asserted
             while (!eol) {
-                #pragma HLS pipeline II=1
-                #pragma HLS loop_tripcount avg=0 max=0
+                #pragma HLS PIPELINE II=1
+                #pragma HLS LOOP_TRIPCOUNT avg=0 max=0
                 axis_src >> axis_reader;
                 eol = axis_reader.last.to_int();
             }
         }
     }
 
-    template<int WIDTH, int HEIGHT>
-    inline void HlsImProc::GrayArray2AXIS(unsigned char* src, hls::stream<im_axis<24> >& axis_dst) {
-        im_axis<24> axis_writer; // for write AXI4-Stream
+    template<uint32_t WIDTH, uint32_t HEIGHT>
+    inline void HlsImProc::GrayArray2AXIS(uint8_t* src, hls::stream<ImAxis<24> >& axis_dst) {
+        ImAxis<24> axis_writer; // for write AXI4-Stream
 
         // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
@@ -169,12 +169,12 @@ namespace hlsimproc
         }
     }
         
-    template<int WIDTH, int HEIGHT>
-    inline void HlsImProc::GaussianBlur(unsigned char* src, unsigned char* dst) {
+    template<uint32_t WIDTH, uint32_t HEIGHT>
+    inline void HlsImProc::GaussianBlur(uint8_t* src, uint8_t* dst) {
         const int KERNEL_SIZE = 5;
 
-        unsigned char line_buf[KERNEL_SIZE][WIDTH];
-        unsigned char window_buf[KERNEL_SIZE][KERNEL_SIZE];
+        uint8_t line_buf[KERNEL_SIZE][WIDTH];
+        uint8_t window_buf[KERNEL_SIZE][KERNEL_SIZE];
 
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
@@ -234,12 +234,12 @@ namespace hlsimproc
         }
     }
 
-    template<int WIDTH, int HEIGHT>
-    inline void HlsImProc::Sobel(unsigned char* src, vector_image* dst) {
+    template<uint32_t WIDTH, uint32_t HEIGHT>
+    inline void HlsImProc::Sobel(uint8_t* src, GradPix* dst) {
         const int KERNEL_SIZE = 3;
 
-        unsigned char line_buf[KERNEL_SIZE][WIDTH];
-        unsigned char window_buf[KERNEL_SIZE][KERNEL_SIZE];
+        uint8_t line_buf[KERNEL_SIZE][WIDTH];
+        uint8_t window_buf[KERNEL_SIZE][KERNEL_SIZE];
 
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
@@ -264,7 +264,7 @@ namespace hlsimproc
 
                 //--- sobel
                 int pix_sobel;
-                int grad_sobel;
+                GradDir grad_sobel;
 
                 //-- line buffer
                 for(int yl = 0; yl < KERNEL_SIZE - 1; yl++) {
@@ -343,18 +343,18 @@ namespace hlsimproc
                 }
                 else {
                     dst[xi + yi*WIDTH].value = 0;
-                    dst[xi + yi*WIDTH].grad  = 0;
+                    dst[xi + yi*WIDTH].grad  = grad_sobel;
                 }
             }
         }
     }
 
-    template<int WIDTH, int HEIGHT>
-    inline void HlsImProc::NonMaxSuppression(vector_image* src, unsigned char* dst) {
+    template<uint32_t WIDTH, uint32_t HEIGHT>
+    inline void HlsImProc::NonMaxSuppression(GradPix* src, uint8_t* dst) {
         const int WINDOW_SIZE = 3;
 
-        vector_image line_buf[WINDOW_SIZE][WIDTH];
-        vector_image window_buf[WINDOW_SIZE][WINDOW_SIZE];
+        GradPix line_buf[WINDOW_SIZE][WIDTH];
+        GradPix window_buf[WINDOW_SIZE][WINDOW_SIZE];
 
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
@@ -366,8 +366,8 @@ namespace hlsimproc
                 #pragma HLS LOOP_FLATTEN off
 
                 //--- non-maximum suppression
-                unsigned char value_nms;
-                unsigned char grad_nms;
+                uint8_t value_nms;
+                GradDir grad_nms;
 
                 //-- line buffer
                 for(int yl = 0; yl < WINDOW_SIZE - 1; yl++) {
@@ -430,8 +430,8 @@ namespace hlsimproc
         }
     }
 
-    template<int WIDTH, int HEIGHT>
-    inline void HlsImProc::HystThreshold(unsigned char* src, unsigned char* dst, unsigned char hthr, unsigned char lthr) {
+    template<uint32_t WIDTH, uint32_t HEIGHT>
+    inline void HlsImProc::HystThreshold(uint8_t* src, uint8_t* dst, uint8_t hthr, uint8_t lthr) {
         // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
@@ -457,12 +457,12 @@ namespace hlsimproc
         }
     }
 
-    template<int WIDTH, int HEIGHT>
-    inline void HlsImProc::HystThresholdComp(unsigned char* src, unsigned char* dst) {
+    template<uint32_t WIDTH, uint32_t HEIGHT>
+    inline void HlsImProc::HystThresholdComp(uint8_t* src, uint8_t* dst) {
         const int WINDOW_SIZE = 3;
 
-        unsigned char line_buf[WINDOW_SIZE][WIDTH];
-        unsigned char window_buf[WINDOW_SIZE][WINDOW_SIZE];
+        uint8_t line_buf[WINDOW_SIZE][WIDTH];
+        uint8_t window_buf[WINDOW_SIZE][WINDOW_SIZE];
 
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
@@ -474,7 +474,7 @@ namespace hlsimproc
                 #pragma HLS LOOP_FLATTEN off
 
                 //--- non-maximum suppression
-                unsigned char pix_hyst = 0;
+                uint8_t pix_hyst = 0;
 
                 //-- line buffer
                 for(int yl = 0; yl < WINDOW_SIZE - 1; yl++) {
@@ -511,16 +511,16 @@ namespace hlsimproc
         }
     }
     
-    template<int WIDTH, int HEIGHT>
-    inline void HlsImProc::ZeroPadding(unsigned char* src, unsigned char* dst, unsigned int padding_size) {
+    template<uint32_t WIDTH, uint32_t HEIGHT>
+    inline void HlsImProc::ZeroPadding(uint8_t* src, uint8_t* dst, uint32_t padding_size) {
         // image proc loop
         for(int yi = 0; yi < HEIGHT; yi++) {
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
-                
+               
                 // output
-                unsigned char pix = src[xi + yi*WIDTH];
+                uint8_t pix = src[xi + yi*WIDTH];
                 if((padding_size < xi && xi < WIDTH - padding_size) &&
                    (padding_size < yi && yi < HEIGHT - padding_size)) {
                     dst[xi + yi*WIDTH] = pix;

@@ -12,7 +12,7 @@
 
 int main() {
     hls::stream<ap_axiu<24,1,1,1> > gen_axis_in, gen_axis_out;
-    hls::stream<rgb_image> im_axis_in, im_axis_out;
+    hls::stream<ImAxis<24> > im_axis_in, im_axis_out;
 
     // read image 
     cv::Mat src = cv::imread(INPUT_IMAGE);
@@ -23,7 +23,7 @@ int main() {
 
     // convert axis type (ap_axiu -> hlsimproc::im_axis)
     ap_axiu<24,1,1,1> gen_axis_reader;
-    rgb_image im_axis_writer;
+    ImAxis<24> im_axis_writer;
 
     for(int yi = 0; yi < MAX_HEIGHT; yi++) {
         for(int xi = 0; xi < MAX_WIDTH; xi++) {
@@ -38,13 +38,13 @@ int main() {
     }
 
     // canny edge detection
-    unsigned char hist_hthr = 80;
-    unsigned char hist_lthr = 20;
-    canny_edge_detection(im_axis_in, im_axis_out, hist_hthr, hist_lthr);
+    uint8_t hthr = 80;
+    uint8_t lthr = 20;
+    canny_edge_detection(im_axis_in, im_axis_out, hthr, lthr);
 
     // convert axis type (hlsimproc::im_axis -> ap_axiu)
     ap_axiu<24,1,1,1> gen_axis_writer;
-    rgb_image im_axis_reader;
+    ImAxis<24> im_axis_reader;
 
     for(int yi = 0; yi < MAX_HEIGHT; yi++) {
         for(int xi = 0; xi < MAX_WIDTH; xi++) {

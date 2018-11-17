@@ -1,7 +1,7 @@
 /*
 ------------------------------------
-(C) Kudo Yuya, September 2018. All rights reserved.
-Last Modified 2018-09-13
+(C) Kudo Yuya, Nov. 2018. All rights reserved.
+Last Modified 2018-11-17
 ------------------------------------
 */
 
@@ -10,16 +10,17 @@ Last Modified 2018-09-13
 using namespace hls;
 using namespace hlsimproc;
 
-unsigned char fifo1[MAX_WIDTH * MAX_HEIGHT];
-unsigned char fifo2[MAX_WIDTH * MAX_HEIGHT];
-vector_image  fifo3[MAX_WIDTH * MAX_HEIGHT];
-unsigned char fifo4[MAX_WIDTH * MAX_HEIGHT];
-unsigned char fifo5[MAX_WIDTH * MAX_HEIGHT];
-unsigned char fifo6[MAX_WIDTH * MAX_HEIGHT];
-unsigned char fifo7[MAX_WIDTH * MAX_HEIGHT];
+uint8_t fifo1[MAX_WIDTH * MAX_HEIGHT];
+uint8_t fifo2[MAX_WIDTH * MAX_HEIGHT];
+GradPix fifo3[MAX_WIDTH * MAX_HEIGHT];
+uint8_t fifo4[MAX_WIDTH * MAX_HEIGHT];
+uint8_t fifo5[MAX_WIDTH * MAX_HEIGHT];
+uint8_t fifo6[MAX_WIDTH * MAX_HEIGHT];
+uint8_t fifo7[MAX_WIDTH * MAX_HEIGHT];
 
 // Top Function
-void canny_edge_detection(stream<rgb_image>& axis_in, stream<rgb_image>& axis_out, unsigned char& hist_hthr, unsigned char& hist_lthr) {
+void canny_edge_detection(stream<ImAxis<24> >& axis_in, stream<ImAxis<24> >& axis_out,
+                          uint8_t& hist_hthr, uint8_t& hist_lthr) {
     // interface directive
     #pragma HLS INTERFACE axis port=axis_in
     #pragma HLS INTERFACE axis port=axis_out
@@ -36,7 +37,7 @@ void canny_edge_detection(stream<rgb_image>& axis_in, stream<rgb_image>& axis_ou
     #pragma HLS STREAM variable=fifo5 depth=1 dim=1
     #pragma HLS STREAM variable=fifo6 depth=1 dim=1
     #pragma HLS STREAM variable=fifo7 depth=1 dim=1
-
+    
     // AXI4-Stream -> GrayScale image
     HlsImProc::AXIS2GrayArray<MAX_WIDTH, MAX_HEIGHT>(axis_in, fifo1);
 
@@ -50,8 +51,8 @@ void canny_edge_detection(stream<rgb_image>& axis_in, stream<rgb_image>& axis_ou
     HlsImProc::NonMaxSuppression<MAX_WIDTH, MAX_HEIGHT>(fifo3, fifo4);
 
     // exe zero padding at boundary pixel
-    unsigned int padding_size = 5;
-    HlsImProc::ZeroPadding<MAX_WIDTH, MAX_HEIGHT>(fifo4, fifo5, padding_size);
+    const uint32_t PADDING_SIZE = 5;
+    HlsImProc::ZeroPadding<MAX_WIDTH, MAX_HEIGHT>(fifo4, fifo5, PADDING_SIZE);
 
     // exe hysteresis threshold
     HlsImProc::HystThreshold<MAX_WIDTH, MAX_HEIGHT>(fifo5, fifo6, hist_hthr, hist_lthr);
