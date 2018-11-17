@@ -12,7 +12,7 @@
 
 int main() {
     hls::stream<ap_axiu<24,1,1,1> > gen_axis_in, gen_axis_out;
-    hls::stream<ImAxis<24> > im_axis_in, im_axis_out;
+    hls::stream<hlsimproc::ImAxis<24> > im_axis_in, im_axis_out;
 
     // read image 
     cv::Mat src = cv::imread(INPUT_IMAGE);
@@ -23,7 +23,7 @@ int main() {
 
     // convert axis type (ap_axiu -> hlsimproc::im_axis)
     ap_axiu<24,1,1,1> gen_axis_reader;
-    ImAxis<24> im_axis_writer;
+    hlsimproc::ImAxis<24> im_axis_writer;
 
     for(int yi = 0; yi < MAX_HEIGHT; yi++) {
         for(int xi = 0; xi < MAX_WIDTH; xi++) {
@@ -44,7 +44,7 @@ int main() {
 
     // convert axis type (hlsimproc::im_axis -> ap_axiu)
     ap_axiu<24,1,1,1> gen_axis_writer;
-    ImAxis<24> im_axis_reader;
+    hlsimproc::ImAxis<24> im_axis_reader;
 
     for(int yi = 0; yi < MAX_HEIGHT; yi++) {
         for(int xi = 0; xi < MAX_WIDTH; xi++) {
