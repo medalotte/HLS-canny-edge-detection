@@ -5,16 +5,12 @@
 - IP core made by this code can run close to 1pix/clock because of pipeline processing
 - You can make other image processing module that are like sequential access based on this code design
 
-### Example
+### example
+<img src="testbench/lenna.png" alt="C simulation result">
 
-- This road tile is used in
-[FPT2018 FPGA Design Competition](https://wwp.shizuoka.ac.jp/fpt-design-contest/).
+<img src="assets/out.png" alt="C simulation result">
 
-<img src="testbench/test_img.bmp" alt="C simulation result">
-
-<img src="assets/out.bmp" alt="C simulation result">
-
-### Reference
+### cited
 [Akira Yamawaki, Seiichi Serikawa, “A describing method of
 an image processing software in C for a high-level synthesis
 considering a function chaining,” IEICE trans. inf. & syst.,

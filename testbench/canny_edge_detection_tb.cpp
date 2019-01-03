@@ -21,7 +21,7 @@ int main() {
     // cv::Mat -> AXI4-Stream
     cvMat2AXIvideo(src, gen_axis_in);
 
-    // convert axis type (ap_axiu -> hlsimproc::im_axis)
+    // convert axis type (ap_axiu -> hlsimproc::ImAxis)
     ap_axiu<24,1,1,1> gen_axis_reader;
     hlsimproc::ImAxis<24> im_axis_writer;
 
@@ -38,11 +38,11 @@ int main() {
     }
 
     // canny edge detection
-    uint8_t hthr = 80;
-    uint8_t lthr = 20;
+    uint8_t hthr = CANNY_HTHR;
+    uint8_t lthr = CANNY_LTHR;
     canny_edge_detection(im_axis_in, im_axis_out, hthr, lthr);
 
-    // convert axis type (hlsimproc::im_axis -> ap_axiu)
+    // convert axis type (hlsimproc::ImAxis -> ap_axiu)
     ap_axiu<24,1,1,1> gen_axis_writer;
     hlsimproc::ImAxis<24> im_axis_reader;
 
