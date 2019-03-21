@@ -1,17 +1,17 @@
 # HLS-canny-edge-detection
-### Implement Canny edge detection to FPGA as IP by using Vivado HLS
+## Implement Canny edge detection to FPGA as IP by using Vivado HLS
 
 - Protocol of input and output are AXI4-Stream
 - IP core made by this code can run close to 1pix/clock because of pipeline processing
 - You can make other image processing module that are like sequential access based on this code design
 
-### Example
+## Example
 <div style="text-align: center;">
     <img src="testbench/lenna.png" alt="C simulation result">
     <img src="assets/out.png" alt="C simulation result">
 </div>
 
-### Cited
+## Cited
 [Akira Yamawaki, Seiichi Serikawa, “A describing method of
 an image processing software in C for a high-level synthesis
 considering a function chaining,” IEICE trans. inf. & syst.,
