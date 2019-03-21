@@ -1,10 +1,25 @@
 /*
-  ------------------------------------
-  (C) Kudo Yuya, Nov. 2018. All rights reserved.
-  Last Modified 2018-11-17
-  ------------------------------------
-  Class of image processing for Vivado HLS
-  ------------------------------------
+  The MIT License (MIT)
+
+  Copyright (c) 2019 Yuya Kudo.
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
 */
 
 #ifndef SRC_HLS_IM_PROC_HPP_
@@ -15,8 +30,7 @@
 #include <hls_stream.h>
 #include <hls_math.h>
 
-namespace hlsimproc
-{
+namespace hlsimproc {
     // definition of gradient direction
     enum GradDir {
         DIR_0,
@@ -24,7 +38,7 @@ namespace hlsimproc
         DIR_90,
         DIR_135
     };
-    
+
     // struct for image flowing through AXI4-Stream
     template<int D>
     struct ImAxis {
@@ -32,13 +46,13 @@ namespace hlsimproc
         ap_uint<1> user;
         ap_uint<1> last;
     };
-    
+
     // struct of pixel that have gradient info
     struct GradPix {
         uint8_t value;
         GradDir grad;
     };
-    
+
     class HlsImProc {
         public:
         // AXI4-Stream -> GrayScale image
@@ -77,7 +91,7 @@ namespace hlsimproc
         while (!sof) {
             #pragma HLS PIPELINE II=1
             #pragma HLS LOOP_TRIPCOUNT avg=0 max=0
-            
+
             axis_src >> axis_reader;
             sof = axis_reader.user.to_int();
         }
@@ -168,7 +182,7 @@ namespace hlsimproc
             }
         }
     }
-        
+
     template<uint32_t WIDTH, uint32_t HEIGHT>
     inline void HlsImProc::GaussianBlur(uint8_t* src, uint8_t* dst) {
         const int KERNEL_SIZE = 5;
@@ -178,7 +192,7 @@ namespace hlsimproc
 
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
-        
+
         //-- 5x5 Gaussian kernel (8bit left shift)
         const int GAUSS_KERNEL[KERNEL_SIZE][KERNEL_SIZE] = { {1,  4,  6,  4, 1},
                                                              {4, 16, 24, 16, 4},
@@ -196,12 +210,12 @@ namespace hlsimproc
 
                 //--- gaussian bler
                 int pix_gauss;
-                
+
                 //-- line buffer
                 for(int yl = 0; yl < KERNEL_SIZE - 1; yl++) {
                     line_buf[yl][xi] = line_buf[yl + 1][xi];
                 }
-                
+
                 // write to line buffer
                 line_buf[KERNEL_SIZE - 1][xi] = src[xi + yi*WIDTH];
 
@@ -211,7 +225,7 @@ namespace hlsimproc
                         window_buf[yw][xw] = window_buf[yw][xw + 1];
                     }
                 }
-                
+
                 // write to window buffer
                 for(int yw = 0; yw < KERNEL_SIZE; yw++) {
                     window_buf[yw][KERNEL_SIZE - 1] = line_buf[yw][xi];
@@ -243,7 +257,7 @@ namespace hlsimproc
 
         #pragma HLS ARRAY_RESHAPE variable=line_buf complete dim=1
         #pragma HLS ARRAY_PARTITION variable=window_buf complete dim=0
-        
+
         //-- 3x3 Horizontal Sobel kernel
         const int H_SOBEL_KERNEL[KERNEL_SIZE][KERNEL_SIZE] = {  { 1,  0, -1},
                                                                 { 2,  0, -2},
@@ -450,7 +464,7 @@ namespace hlsimproc
                 else {
                     pix_hyst = 1;
                 }
-                
+
                 // output
                 dst[xi + yi*WIDTH] = pix_hyst;
             }
@@ -510,7 +524,7 @@ namespace hlsimproc
             }
         }
     }
-    
+
     template<uint32_t WIDTH, uint32_t HEIGHT>
     inline void HlsImProc::ZeroPadding(uint8_t* src, uint8_t* dst, uint32_t padding_size) {
         // image proc loop
@@ -518,7 +532,7 @@ namespace hlsimproc
             for(int xi = 0; xi < WIDTH; xi++) {
                 #pragma HLS PIPELINE II=1
                 #pragma HLS LOOP_FLATTEN off
-               
+
                 // output
                 uint8_t pix = src[xi + yi*WIDTH];
                 if((padding_size < xi && xi < WIDTH - padding_size) &&
