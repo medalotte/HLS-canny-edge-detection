@@ -12,7 +12,7 @@ Implement Canny edge detection to FPGA as IP by using Vivado HLS
     <img src="assets/out.png" alt="C simulation result">
 </div>
 
-## Cited
+## Reference
 [Akira Yamawaki, Seiichi Serikawa, “A describing method of
 an image processing software in C for a high-level synthesis
 considering a function chaining,” IEICE trans. inf. & syst.,
