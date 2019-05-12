@@ -1,5 +1,5 @@
 # HLS-canny-edge-detection
-Implement Canny edge detection to FPGA as IP by using Vivado HLS
+An FPGA Implementation of Canny edge detection by using Vivado HLS
 
 ## Feature
 - Protocol of input and output are AXI4-Stream
